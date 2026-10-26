@@ -10,7 +10,18 @@ export const Navbar = ({ onOpenSettings, onPrint }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
+            <img
+              src="/logo.png"
+              alt="Logo Catatan Kelas"
+              className="w-10 h-10 object-contain rounded-xl shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextElementSibling) {
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }
+              }}
+            />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 hidden items-center justify-center text-white shadow-sm">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>

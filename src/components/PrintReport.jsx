@@ -41,9 +41,17 @@ export const PrintReport = ({ activeClass, students, meetings, grades, weights }
 
   return (
     <div className="hidden print:block p-8 bg-white text-black font-serif text-sm">
-      <div className="text-center border-b-2 border-black pb-4 mb-6">
-        <h1 className="text-2xl font-bold uppercase tracking-wider">Laporan Rekapitulasi Nilai Siswa</h1>
-        <p className="text-base font-semibold">Tahun Ajaran {activeClass.academic_year} — Semester {activeClass.semester}</p>
+      <div className="flex items-center justify-center space-x-4 border-b-2 border-black pb-4 mb-6">
+        <img
+          src="/logo.png"
+          alt="Logo"
+          className="w-16 h-16 object-contain"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold uppercase tracking-wider">Laporan Rekapitulasi Nilai Siswa</h1>
+          <p className="text-base font-semibold">Tahun Ajaran {activeClass.academic_year} — Semester {activeClass.semester}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">

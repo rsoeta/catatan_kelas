@@ -35,7 +35,18 @@ export const AuthModal = () => {
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-slate-100">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+          <img
+            src="/logo.png"
+            alt="Logo Catatan Kelas"
+            className="w-16 h-16 object-contain mx-auto mb-3 drop-shadow-sm"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextElementSibling) {
+                e.currentTarget.nextElementSibling.style.display = 'flex';
+              }
+            }}
+          />
+          <div className="w-14 h-14 bg-sky-50 text-sky-600 rounded-2xl hidden items-center justify-center mx-auto mb-3 shadow-inner">
             <Lock className="w-7 h-7" />
           </div>
           <h2 className="text-2xl font-bold text-slate-800">
