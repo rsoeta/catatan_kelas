@@ -56,6 +56,7 @@ export default function App() {
   const [editingClass, setEditingClass] = useState(null);
   const [isClassManagementOpen, setIsClassManagementOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -232,24 +233,55 @@ export default function App() {
   };
 
   // Student Handlers
+  const handleOpenCreateStudent = () => {
+    setEditingStudent(null);
+    setIsStudentModalOpen(true);
+  };
+
+  const handleOpenEditStudent = (student) => {
+    setEditingStudent(student);
+    setIsStudentModalOpen(true);
+  };
+
   const handleSaveStudent = async (studentData) => {
     if (!supabase || !user) return;
-    const payload = {
-      id: generateId(),
-      ...studentData,
-      user_id: user.id,
-    };
-    const { data, error } = await supabase
-      .from('students')
-      .insert([payload])
-      .select()
-      .single();
-    if (error) {
-      toast.error('Gagal menambah siswa: ' + error.message);
-      return;
+
+    if (studentData.id) {
+      // Update existing student
+      const { id, ...payload } = studentData;
+      const { data, error } = await supabase
+        .from('students')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        toast.error('Gagal memperbarui siswa: ' + error.message);
+        return;
+      }
+      setStudents((prev) => prev.map((s) => (s.id === id ? data : s)));
+      toast.success(`Data siswa "${data.full_name}" berhasil diperbarui!`);
+    } else {
+      // Create new student
+      const payload = {
+        id: generateId(),
+        ...studentData,
+        user_id: user.id,
+      };
+      const { data, error } = await supabase
+        .from('students')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) {
+        toast.error('Gagal menambah siswa: ' + error.message);
+        return;
+      }
+      setStudents((prev) => [...prev, data]);
+      toast.success(`Siswa "${data.full_name}" berhasil ditambahkan!`);
     }
-    setStudents((prev) => [...prev, data]);
-    toast.success(`Siswa "${data.full_name}" berhasil ditambahkan!`);
+    setEditingStudent(null);
   };
 
   const handleBatchImportStudents = async (studentList) => {
@@ -557,7 +589,7 @@ export default function App() {
 
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => setIsStudentModalOpen(true)}
+                    onClick={handleOpenCreateStudent}
                     className="inline-flex items-center justify-center px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition"
                   >
                     <Plus className="w-4 h-4 mr-1.5" />
@@ -595,6 +627,7 @@ export default function App() {
               activeMeetingId={activeMeetingId}
               grades={grades}
               onSaveGrade={handleSaveGrade}
+              onEditStudent={handleOpenEditStudent}
               onDeleteStudent={handleDeleteStudent}
               weights={settings}
             />
@@ -667,10 +700,14 @@ export default function App() {
 
       <StudentModal
         isOpen={isStudentModalOpen}
-        onClose={() => setIsStudentModalOpen(false)}
+        onClose={() => {
+          setIsStudentModalOpen(false);
+          setEditingStudent(null);
+        }}
         onSave={handleSaveStudent}
         onBatchImport={handleBatchImportStudents}
         classId={activeClassId}
+        editingStudent={editingStudent}
       />
 
       <MeetingModal

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Check, Trash2, Award } from 'lucide-react';
+import { Save, Check, Trash2, Award, Edit3 } from 'lucide-react';
 
 export const GradeTable = ({
   students,
@@ -7,6 +7,7 @@ export const GradeTable = ({
   activeMeetingId,
   grades,
   onSaveGrade,
+  onEditStudent,
   onDeleteStudent,
   weights,
 }) => {
@@ -80,7 +81,7 @@ export const GradeTable = ({
               <th className="py-3 px-4 w-32 text-center bg-amber-50/50">Sikap</th>
               <th className="py-3 px-4 w-28 text-center bg-indigo-50/50">Nilai Akhir</th>
               <th className="py-3 px-4 w-36 text-center">Predikat</th>
-              <th className="py-3 px-4 w-20 text-center no-print">Aksi</th>
+              <th className="py-3 px-4 w-24 text-center no-print">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -174,13 +175,22 @@ export const GradeTable = ({
                     </td>
                     {/* Aksi */}
                     <td className="py-3.5 px-4 text-center no-print">
-                      <button
-                        onClick={() => onDeleteStudent(student.id, student.full_name)}
-                        className="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
-                        title="Hapus Siswa"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          onClick={() => onEditStudent(student)}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition"
+                          title="Edit Data Siswa"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteStudent(student.id, student.full_name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+                          title="Hapus Siswa"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -288,10 +298,17 @@ export const GradeTable = ({
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-1">
+                <div className="flex justify-end items-center space-x-3 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => onEditStudent(student)}
+                    className="text-xs font-semibold text-amber-600 hover:text-amber-700 flex items-center space-x-1 p-1"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Siswa</span>
+                  </button>
                   <button
                     onClick={() => onDeleteStudent(student.id, student.full_name)}
-                    className="text-xs text-rose-500 hover:text-rose-700 flex items-center space-x-1 p-1"
+                    className="text-xs font-semibold text-rose-500 hover:text-rose-700 flex items-center space-x-1 p-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Hapus Siswa</span>

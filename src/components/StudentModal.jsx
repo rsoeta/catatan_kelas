@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
-import { X, UserPlus, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UserPlus, Users, Edit3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }) => {
+export const StudentModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  onBatchImport,
+  classId,
+  editingStudent = null,
+}) => {
   const [tab, setTab] = useState('single'); // 'single' | 'batch'
   const [nis, setNis] = useState('');
   const [fullName, setFullName] = useState('');
@@ -11,6 +18,23 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
 
   const [batchText, setBatchText] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (editingStudent) {
+      setTab('single');
+      setNis(editingStudent.nis || '');
+      setFullName(editingStudent.full_name || '');
+      setGender(editingStudent.gender || 'L');
+      setNotes(editingStudent.notes || '');
+    } else {
+      setTab('single');
+      setNis('');
+      setFullName('');
+      setGender('L');
+      setNotes('');
+      setBatchText('');
+    }
+  }, [editingStudent, isOpen]);
 
   if (!isOpen) return null;
 
@@ -21,13 +45,17 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
       return;
     }
     setSaving(true);
-    await onSave({
+    const payload = {
       class_id: classId,
-      nis,
+      nis: nis.trim(),
       full_name: fullName.trim(),
       gender,
-      notes,
-    });
+      notes: notes.trim(),
+    };
+    if (editingStudent?.id) {
+      payload.id = editingStudent.id;
+    }
+    await onSave(payload);
     setSaving(false);
     onClose();
   };
@@ -40,8 +68,8 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
     }
 
     // Format: baris per baris. Contoh: "101;Ahmad;L" atau hanya nama "Ahmad"
-    const lines = batchText.split('\n').map(l => l.trim()).filter(Boolean);
-    const students = lines.map(line => {
+    const lines = batchText.split('\n').map((l) => l.trim()).filter(Boolean);
+    const students = lines.map((line) => {
       const parts = line.split(/[;\t]/);
       if (parts.length >= 3) {
         return {
@@ -77,46 +105,54 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-slate-800 flex items-center space-x-2">
-            <span className="p-2 bg-sky-50 text-sky-600 rounded-lg">
-              <UserPlus className="w-5 h-5" />
+            <span
+              className={`p-2 rounded-lg ${
+                editingStudent ? 'bg-amber-50 text-amber-600' : 'bg-sky-50 text-sky-600'
+              }`}
+            >
+              {editingStudent ? <Edit3 className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
             </span>
-            <span>Tambah Data Siswa</span>
+            <span>{editingStudent ? 'Edit Data Siswa' : 'Tambah Data Siswa'}</span>
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex border-b border-slate-200 mb-4">
-          <button
-            type="button"
-            onClick={() => setTab('single')}
-            className={`flex-1 py-2 text-sm font-semibold border-b-2 transition ${
-              tab === 'single'
-                ? 'border-sky-600 text-sky-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Satu Siswa
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('batch')}
-            className={`flex-1 py-2 text-sm font-semibold border-b-2 transition flex items-center justify-center space-x-1.5 ${
-              tab === 'batch'
-                ? 'border-sky-600 text-sky-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Impor Massal (Copy-Paste)</span>
-          </button>
-        </div>
+        {!editingStudent && (
+          <div className="flex border-b border-slate-200 mb-4">
+            <button
+              type="button"
+              onClick={() => setTab('single')}
+              className={`flex-1 py-2 text-sm font-semibold border-b-2 transition ${
+                tab === 'single'
+                  ? 'border-sky-600 text-sky-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Satu Siswa
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('batch')}
+              className={`flex-1 py-2 text-sm font-semibold border-b-2 transition flex items-center justify-center space-x-1.5 ${
+                tab === 'batch'
+                  ? 'border-sky-600 text-sky-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Impor Massal (Copy-Paste)</span>
+            </button>
+          </div>
+        )}
 
         {tab === 'single' ? (
           <form onSubmit={handleSingleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap Siswa</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Nama Lengkap Siswa <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
                 required
@@ -174,9 +210,11 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2 text-sm font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-md disabled:opacity-50"
+                className={`px-5 py-2 text-sm font-bold text-white rounded-xl shadow-md disabled:opacity-50 transition ${
+                  editingStudent ? 'bg-amber-600 hover:bg-amber-700' : 'bg-sky-600 hover:bg-sky-700'
+                }`}
               >
-                {saving ? 'Menyimpan...' : 'Simpan Siswa'}
+                {saving ? 'Menyimpan...' : editingStudent ? 'Perbarui Siswa' : 'Simpan Siswa'}
               </button>
             </div>
           </form>
@@ -220,4 +258,3 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
     </div>
   );
 };
-
