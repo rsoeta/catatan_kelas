@@ -1,7 +1,0 @@
-.git
-.github
-tests
-vendor
-.env
-*.db
-
