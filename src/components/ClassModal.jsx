@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Layers, Edit3, Plus } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => {
   const [name, setName] = useState('');
@@ -32,7 +33,10 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error('Nama kelas wajib diisi!');
+      return;
+    }
     setSaving(true);
     const payload = {
       name: name.trim(),

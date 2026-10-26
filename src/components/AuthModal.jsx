@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, User, AlertCircle, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const AuthModal = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -21,11 +22,15 @@ export const AuthModal = () => {
       if (isRegister) {
         if (!fullName.trim()) throw new Error('Nama lengkap wajib diisi!');
         await signUp(email, password, fullName);
+        toast.success('Pendaftaran berhasil! Akun telah dibuat.');
       } else {
         await signIn(email, password);
+        toast.success('Berhasil masuk!');
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Terjadi kesalahan saat otentikasi.');
+      const msg = err.message || 'Terjadi kesalahan saat otentikasi.';
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

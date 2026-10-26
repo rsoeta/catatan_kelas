@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Sliders, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const WeightSettingsModal = ({ isOpen, onClose, settings, onSave }) => {
   const [knowledge, setKnowledge] = useState(settings?.weight_knowledge ?? 35);
@@ -14,7 +15,10 @@ export const WeightSettingsModal = ({ isOpen, onClose, settings, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid) {
+      toast.error('Total bobot penilaian harus tepat 100%!');
+      return;
+    }
     setSaving(true);
     await onSave({
       weight_knowledge: Number(knowledge),

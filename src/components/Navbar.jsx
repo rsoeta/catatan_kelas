@@ -1,9 +1,19 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, LogOut, User, Settings, Printer } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const Navbar = ({ onOpenSettings, onPrint }) => {
   const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Berhasil keluar!');
+    } catch (err) {
+      toast.error('Gagal keluar: ' + err.message);
+    }
+  };
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 no-print">
@@ -65,7 +75,7 @@ export const Navbar = ({ onOpenSettings, onPrint }) => {
                 </div>
 
                 <button
-                  onClick={signOut}
+                  onClick={handleSignOut}
                   className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
                   title="Keluar"
                 >

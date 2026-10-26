@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Users } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }) => {
   const [tab, setTab] = useState('single'); // 'single' | 'batch'
@@ -15,7 +16,10 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
 
   const handleSingleSubmit = async (e) => {
     e.preventDefault();
-    if (!fullName.trim()) return;
+    if (!fullName.trim()) {
+      toast.error('Nama lengkap siswa wajib diisi!');
+      return;
+    }
     setSaving(true);
     await onSave({
       class_id: classId,
@@ -30,7 +34,10 @@ export const StudentModal = ({ isOpen, onClose, onSave, onBatchImport, classId }
 
   const handleBatchSubmit = async (e) => {
     e.preventDefault();
-    if (!batchText.trim()) return;
+    if (!batchText.trim()) {
+      toast.error('Data teks siswa tidak boleh kosong!');
+      return;
+    }
 
     // Format: baris per baris. Contoh: "101;Ahmad;L" atau hanya nama "Ahmad"
     const lines = batchText.split('\n').map(l => l.trim()).filter(Boolean);

@@ -10,6 +10,7 @@ import { MeetingModal } from './components/MeetingModal';
 import { WeightSettingsModal } from './components/WeightSettingsModal';
 import { GradeTable } from './components/GradeTable';
 import { PrintReport } from './components/PrintReport';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   Layers,
   Plus,
@@ -169,10 +170,11 @@ export default function App() {
         .single();
 
       if (error) {
-        alert('Gagal memperbarui kelas: ' + error.message);
+        toast.error('Gagal memperbarui kelas: ' + error.message);
         return;
       }
       setClasses((prev) => prev.map((c) => (c.id === id ? data : c)));
+      toast.success('Kelas berhasil diperbarui!');
     } else {
       // Create new class with explicitly assigned UUID to satisfy not-null constraints
       const newClassPayload = {
@@ -193,11 +195,12 @@ export default function App() {
         .single();
 
       if (error) {
-        alert('Gagal menambah kelas: ' + error.message);
+        toast.error('Gagal menambah kelas: ' + error.message);
         return;
       }
       setClasses((prev) => [...prev, data]);
       setActiveClassId(data.id);
+      toast.success('Kelas berhasil ditambahkan!');
     }
     setEditingClass(null);
   };
@@ -214,7 +217,7 @@ export default function App() {
     if (!supabase) return;
     const { error } = await supabase.from('classes').delete().eq('id', classId);
     if (error) {
-      alert('Gagal menghapus kelas: ' + error.message);
+      toast.error('Gagal menghapus kelas: ' + error.message);
       return;
     }
 
@@ -225,6 +228,7 @@ export default function App() {
       }
       return remaining;
     });
+    toast.success(`Kelas "${className}" berhasil dihapus!`);
   };
 
   // Student Handlers
@@ -241,10 +245,11 @@ export default function App() {
       .select()
       .single();
     if (error) {
-      alert('Gagal menambah siswa: ' + error.message);
+      toast.error('Gagal menambah siswa: ' + error.message);
       return;
     }
     setStudents((prev) => [...prev, data]);
+    toast.success(`Siswa "${data.full_name}" berhasil ditambahkan!`);
   };
 
   const handleBatchImportStudents = async (studentList) => {
@@ -259,10 +264,11 @@ export default function App() {
       .insert(withUserAndId)
       .select();
     if (error) {
-      alert('Gagal impor siswa: ' + error.message);
+      toast.error('Gagal impor siswa: ' + error.message);
       return;
     }
     setStudents((prev) => [...prev, ...data]);
+    toast.success(`Berhasil mengimpor ${data.length} siswa!`);
   };
 
   const handleDeleteStudent = async (studentId, studentName) => {
@@ -270,11 +276,12 @@ export default function App() {
     if (!supabase) return;
     const { error } = await supabase.from('students').delete().eq('id', studentId);
     if (error) {
-      alert('Gagal menghapus siswa: ' + error.message);
+      toast.error('Gagal menghapus siswa: ' + error.message);
       return;
     }
     setStudents((prev) => prev.filter((s) => s.id !== studentId));
     setGrades((prev) => prev.filter((g) => g.student_id !== studentId));
+    toast.success(`Siswa "${studentName}" berhasil dihapus!`);
   };
 
   // Meeting Handlers
@@ -291,18 +298,19 @@ export default function App() {
       .select()
       .single();
     if (error) {
-      alert('Gagal menambah pertemuan: ' + error.message);
+      toast.error('Gagal menambah pertemuan: ' + error.message);
       return;
     }
     setMeetings((prev) => [...prev, data]);
     setActiveMeetingId(data.id);
+    toast.success(`Pertemuan #${data.meeting_number} berhasil ditambahkan!`);
   };
 
   // Grade Handlers
   const handleSaveGrade = async (studentId, meetingId, scores) => {
     if (!supabase || !user) return;
     if (!meetingId) {
-      alert('Silakan buat pertemuan/sesi terlebih dahulu sebelum mengisi nilai!');
+      toast.error('Silakan buat pertemuan/sesi terlebih dahulu sebelum mengisi nilai!');
       return;
     }
 
@@ -315,8 +323,11 @@ export default function App() {
         .eq('id', existing.id)
         .select()
         .single();
-      if (!error && data) {
+      if (error) {
+        toast.error('Gagal menyimpan nilai: ' + error.message);
+      } else if (data) {
         setGrades((prev) => prev.map((g) => (g.id === existing.id ? data : g)));
+        toast.success('Nilai berhasil diperbarui!', { id: `grade-${studentId}`, duration: 1500 });
       }
     } else {
       const payload = {
@@ -332,8 +343,11 @@ export default function App() {
         .insert([payload])
         .select()
         .single();
-      if (!error && data) {
+      if (error) {
+        toast.error('Gagal menyimpan nilai: ' + error.message);
+      } else if (data) {
         setGrades((prev) => [...prev, data]);
+        toast.success('Nilai berhasil disimpan!', { id: `grade-${studentId}`, duration: 1500 });
       }
     }
   };
@@ -350,8 +364,11 @@ export default function App() {
       .upsert(payload)
       .select()
       .maybeSingle();
-    if (!error && data) {
+    if (error) {
+      toast.error('Gagal menyimpan bobot: ' + error.message);
+    } else if (data) {
       setSettings(data);
+      toast.success('Pengaturan bobot berhasil diperbarui!');
     }
   };
 
@@ -391,6 +408,34 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3500,
+          style: {
+            borderRadius: '12px',
+            background: '#1e293b',
+            color: '#fff',
+            fontSize: '13px',
+            fontWeight: 500,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4500,
+            iconTheme: {
+              primary: '#f43f5e',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <Navbar
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onPrint={() => window.print()}

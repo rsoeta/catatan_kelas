@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const MeetingModal = ({ isOpen, onClose, onSave, nextMeetingNumber, classId }) => {
   const [meetingNumber, setMeetingNumber] = useState(nextMeetingNumber || 1);
@@ -12,7 +13,10 @@ export const MeetingModal = ({ isOpen, onClose, onSave, nextMeetingNumber, class
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!topic.trim()) return;
+    if (!topic.trim()) {
+      toast.error('Topik bahasan pertemuan wajib diisi!');
+      return;
+    }
     setSaving(true);
     await onSave({
       class_id: classId,
