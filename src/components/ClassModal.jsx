@@ -34,15 +34,18 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    await onSave({
-      id: editingClass?.id,
+    const payload = {
       name: name.trim(),
       grade_level: gradeLevel,
       academic_year: academicYear.trim(),
       semester,
       subject: subject.trim(),
       description: description.trim(),
-    });
+    };
+    if (editingClass?.id) {
+      payload.id = editingClass.id;
+    }
+    await onSave(payload);
     setSaving(false);
     onClose();
   };

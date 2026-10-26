@@ -23,6 +23,17 @@ import {
   Settings2
 } from 'lucide-react';
 
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 export default function App() {
   const { user, loading: authLoading } = useAuth();
 
@@ -72,7 +83,8 @@ export default function App() {
         const { data: setData } = await supabase
           .from('settings')
           .select('*')
-          .single();
+          .eq('user_id', user.id)
+          .maybeSingle();
         if (setData) setSettings(setData);
       } catch (err) {
         console.error('Error fetching initial data:', err);
@@ -151,7 +163,7 @@ export default function App() {
       const { id, ...payload } = classData;
       const { data, error } = await supabase
         .from('classes')
-        .update({ ...payload, updated_at: new Date() })
+        .update({ ...payload, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
@@ -162,10 +174,21 @@ export default function App() {
       }
       setClasses((prev) => prev.map((c) => (c.id === id ? data : c)));
     } else {
-      // Create new class
+      // Create new class with explicitly assigned UUID to satisfy not-null constraints
+      const newClassPayload = {
+        id: generateId(),
+        user_id: user.id,
+        name: classData.name,
+        grade_level: classData.grade_level || '10',
+        academic_year: classData.academic_year || '2025/2026',
+        semester: classData.semester || 'Ganjil',
+        subject: classData.subject || 'Mata Pelajaran Umum',
+        description: classData.description || '',
+      };
+
       const { data, error } = await supabase
         .from('classes')
-        .insert([{ ...classData, user_id: user.id }])
+        .insert([newClassPayload])
         .select()
         .single();
 
@@ -207,9 +230,14 @@ export default function App() {
   // Student Handlers
   const handleSaveStudent = async (studentData) => {
     if (!supabase || !user) return;
+    const payload = {
+      id: generateId(),
+      ...studentData,
+      user_id: user.id,
+    };
     const { data, error } = await supabase
       .from('students')
-      .insert([{ ...studentData, user_id: user.id }])
+      .insert([payload])
       .select()
       .single();
     if (error) {
@@ -221,10 +249,14 @@ export default function App() {
 
   const handleBatchImportStudents = async (studentList) => {
     if (!supabase || !user) return;
-    const withUser = studentList.map((s) => ({ ...s, user_id: user.id }));
+    const withUserAndId = studentList.map((s) => ({
+      id: generateId(),
+      ...s,
+      user_id: user.id,
+    }));
     const { data, error } = await supabase
       .from('students')
-      .insert(withUser)
+      .insert(withUserAndId)
       .select();
     if (error) {
       alert('Gagal impor siswa: ' + error.message);
@@ -248,9 +280,14 @@ export default function App() {
   // Meeting Handlers
   const handleSaveMeeting = async (meetingData) => {
     if (!supabase || !user) return;
+    const payload = {
+      id: generateId(),
+      ...meetingData,
+      user_id: user.id,
+    };
     const { data, error } = await supabase
       .from('meetings')
-      .insert([{ ...meetingData, user_id: user.id }])
+      .insert([payload])
       .select()
       .single();
     if (error) {
@@ -274,7 +311,7 @@ export default function App() {
     if (existing) {
       const { data, error } = await supabase
         .from('grades')
-        .update({ ...scores, updated_at: new Date() })
+        .update({ ...scores, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
         .select()
         .single();
@@ -282,14 +319,17 @@ export default function App() {
         setGrades((prev) => prev.map((g) => (g.id === existing.id ? data : g)));
       }
     } else {
+      const payload = {
+        id: generateId(),
+        user_id: user.id,
+        student_id: studentId,
+        meeting_id: meetingId,
+        ...scores,
+      };
+
       const { data, error } = await supabase
         .from('grades')
-        .insert([{
-          user_id: user.id,
-          student_id: studentId,
-          meeting_id: meetingId,
-          ...scores,
-        }])
+        .insert([payload])
         .select()
         .single();
       if (!error && data) {
@@ -300,11 +340,16 @@ export default function App() {
 
   const handleSaveSettings = async (newWeights) => {
     if (!supabase || !user) return;
+    const payload = {
+      id: settings.id || generateId(),
+      user_id: user.id,
+      ...newWeights,
+    };
     const { data, error } = await supabase
       .from('settings')
-      .upsert({ user_id: user.id, ...newWeights })
+      .upsert(payload)
       .select()
-      .single();
+      .maybeSingle();
     if (!error && data) {
       setSettings(data);
     }
