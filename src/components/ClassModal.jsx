@@ -1,27 +1,47 @@
-import React, { useState } from 'react';
-import { X, Layers } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Layers, Edit3, Plus } from 'lucide-react';
 
 export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => {
-  const [name, setName] = useState(editingClass?.name || '');
-  const [gradeLevel, setGradeLevel] = useState(editingClass?.grade_level || '10');
-  const [academicYear, setAcademicYear] = useState(editingClass?.academic_year || '2025/2026');
-  const [semester, setSemester] = useState(editingClass?.semester || 'Ganjil');
-  const [subject, setSubject] = useState(editingClass?.subject || 'Mata Pelajaran Umum');
-  const [description, setDescription] = useState(editingClass?.description || '');
+  const [name, setName] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('10');
+  const [academicYear, setAcademicYear] = useState('2025/2026');
+  const [semester, setSemester] = useState('Ganjil');
+  const [subject, setSubject] = useState('Mata Pelajaran Umum');
+  const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (editingClass) {
+      setName(editingClass.name || '');
+      setGradeLevel(editingClass.grade_level || '10');
+      setAcademicYear(editingClass.academic_year || '2025/2026');
+      setSemester(editingClass.semester || 'Ganjil');
+      setSubject(editingClass.subject || 'Mata Pelajaran Umum');
+      setDescription(editingClass.description || '');
+    } else {
+      setName('');
+      setGradeLevel('10');
+      setAcademicYear('2025/2026');
+      setSemester('Ganjil');
+      setSubject('Mata Pelajaran Umum');
+      setDescription('');
+    }
+  }, [editingClass, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!name.trim()) return;
     setSaving(true);
     await onSave({
-      name,
+      id: editingClass?.id,
+      name: name.trim(),
       grade_level: gradeLevel,
-      academic_year: academicYear,
+      academic_year: academicYear.trim(),
       semester,
-      subject,
-      description,
+      subject: subject.trim(),
+      description: description.trim(),
     });
     setSaving(false);
     onClose();
@@ -32,11 +52,11 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center space-x-2">
-            <div className="p-2 bg-sky-50 text-sky-600 rounded-lg">
-              <Layers className="w-5 h-5" />
+            <div className={`p-2 rounded-lg ${editingClass ? 'bg-amber-50 text-amber-600' : 'bg-sky-50 text-sky-600'}`}>
+              {editingClass ? <Edit3 className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
             </div>
             <h3 className="text-lg font-bold text-slate-800">
-              {editingClass ? 'Edit Rombel / Kelas' : 'Tambah Rombel / Kelas Baru'}
+              {editingClass ? `Edit Rombel: ${editingClass.name}` : 'Tambah Rombel / Kelas Baru'}
             </h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
@@ -46,7 +66,9 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Kelas / Rombel</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Nama Kelas / Rombel <span className="text-rose-500">*</span>
+            </label>
             <input
               type="text"
               required
@@ -65,6 +87,12 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
                 onChange={(e) => setGradeLevel(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-sky-500"
               >
+                <option value="1">Kelas 1 (SD)</option>
+                <option value="2">Kelas 2 (SD)</option>
+                <option value="3">Kelas 3 (SD)</option>
+                <option value="4">Kelas 4 (SD)</option>
+                <option value="5">Kelas 5 (SD)</option>
+                <option value="6">Kelas 6 (SD)</option>
                 <option value="7">Kelas 7 (SMP)</option>
                 <option value="8">Kelas 8 (SMP)</option>
                 <option value="9">Kelas 9 (SMP)</option>
@@ -114,10 +142,10 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan (Opsional)</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan / Catatan (Opsional)</label>
             <textarea
               rows={2}
-              placeholder="Catatan tambahan rombel..."
+              placeholder="Catatan rombel, ruang kelas, atau jadwal..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-sky-500"
@@ -135,9 +163,12 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-md disabled:opacity-50"
+              className={`px-5 py-2 text-sm font-bold text-white rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5 ${
+                editingClass ? 'bg-amber-600 hover:bg-amber-700' : 'bg-sky-600 hover:bg-sky-700'
+              }`}
             >
-              {saving ? 'Menyimpan...' : 'Simpan Kelas'}
+              {editingClass ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              <span>{saving ? 'Menyimpan...' : editingClass ? 'Perbarui Kelas' : 'Simpan Kelas'}</span>
             </button>
           </div>
         </form>
@@ -145,4 +176,3 @@ export const ClassModal = ({ isOpen, onClose, onSave, editingClass = null }) => 
     </div>
   );
 };
-

@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { Navbar } from './components/Navbar';
 import { AuthModal } from './components/AuthModal';
 import { ClassModal } from './components/ClassModal';
+import { ClassManagementModal } from './components/ClassManagementModal';
 import { StudentModal } from './components/StudentModal';
 import { MeetingModal } from './components/MeetingModal';
 import { WeightSettingsModal } from './components/WeightSettingsModal';
@@ -16,8 +17,10 @@ import {
   Calendar,
   AlertTriangle,
   Loader2,
-  ChevronDown,
-  BookOpen
+  Edit3,
+  Trash2,
+  BookOpen,
+  Settings2
 } from 'lucide-react';
 
 export default function App() {
@@ -38,6 +41,8 @@ export default function App() {
 
   // UI Modals
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
+  const [isClassManagementOpen, setIsClassManagementOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -81,7 +86,13 @@ export default function App() {
 
   // 2. Fetch Students, Meetings & Grades when activeClassId changes
   useEffect(() => {
-    if (!user || !supabase || !activeClassId) return;
+    if (!user || !supabase || !activeClassId) {
+      setStudents([]);
+      setMeetings([]);
+      setActiveMeetingId('');
+      setGrades([]);
+      return;
+    }
 
     const fetchClassDetails = async () => {
       try {
@@ -121,22 +132,79 @@ export default function App() {
     fetchClassDetails();
   }, [user, activeClassId]);
 
-  // Handlers
-  const handleSaveClass = async (classData) => {
-    if (!supabase || !user) return;
-    const { data, error } = await supabase
-      .from('classes')
-      .insert([{ ...classData, user_id: user.id }])
-      .select()
-      .single();
-    if (error) {
-      alert('Gagal menambah kelas: ' + error.message);
-      return;
-    }
-    setClasses((prev) => [...prev, data]);
-    setActiveClassId(data.id);
+  // Handlers for Class Management
+  const handleOpenCreateClass = () => {
+    setEditingClass(null);
+    setIsClassModalOpen(true);
   };
 
+  const handleOpenEditClass = (cls) => {
+    setEditingClass(cls);
+    setIsClassModalOpen(true);
+  };
+
+  const handleSaveClass = async (classData) => {
+    if (!supabase || !user) return;
+
+    if (classData.id) {
+      // Update existing class
+      const { id, ...payload } = classData;
+      const { data, error } = await supabase
+        .from('classes')
+        .update({ ...payload, updated_at: new Date() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        alert('Gagal memperbarui kelas: ' + error.message);
+        return;
+      }
+      setClasses((prev) => prev.map((c) => (c.id === id ? data : c)));
+    } else {
+      // Create new class
+      const { data, error } = await supabase
+        .from('classes')
+        .insert([{ ...classData, user_id: user.id }])
+        .select()
+        .single();
+
+      if (error) {
+        alert('Gagal menambah kelas: ' + error.message);
+        return;
+      }
+      setClasses((prev) => [...prev, data]);
+      setActiveClassId(data.id);
+    }
+    setEditingClass(null);
+  };
+
+  const handleDeleteClass = async (classId, className) => {
+    if (
+      !window.confirm(
+        `PERINGATAN: Menghapus kelas "${className}" akan menghapus seluruh data siswa, pertemuan, dan penilaian di kelas ini secara permanen.\n\nApakah Anda yakin ingin melanjutkan?`
+      )
+    ) {
+      return;
+    }
+
+    if (!supabase) return;
+    const { error } = await supabase.from('classes').delete().eq('id', classId);
+    if (error) {
+      alert('Gagal menghapus kelas: ' + error.message);
+      return;
+    }
+
+    setClasses((prev) => {
+      const remaining = prev.filter((c) => c.id !== classId);
+      if (activeClassId === classId) {
+        setActiveClassId(remaining.length > 0 ? remaining[0].id : '');
+      }
+      return remaining;
+    });
+  };
+
+  // Student Handlers
   const handleSaveStudent = async (studentData) => {
     if (!supabase || !user) return;
     const { data, error } = await supabase
@@ -177,6 +245,7 @@ export default function App() {
     setGrades((prev) => prev.filter((g) => g.student_id !== studentId));
   };
 
+  // Meeting Handlers
   const handleSaveMeeting = async (meetingData) => {
     if (!supabase || !user) return;
     const { data, error } = await supabase
@@ -192,6 +261,7 @@ export default function App() {
     setActiveMeetingId(data.id);
   };
 
+  // Grade Handlers
   const handleSaveGrade = async (studentId, meetingId, scores) => {
     if (!supabase || !user) return;
     if (!meetingId) {
@@ -287,44 +357,78 @@ export default function App() {
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 no-print">
           {/* HEADER / CLASS & MEETING CONTROLS */}
           <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-4">
-              {/* Class Selector Dropdown */}
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 border-b border-slate-100 pb-4">
+              {/* Class Selector Dropdown & Quick Actions */}
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="p-2.5 bg-sky-50 text-sky-600 rounded-xl">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-slate-400">
-                    Pilih Kelas / Rombel
+                    Rombel / Kelas Aktif
                   </label>
                   <div className="flex items-center space-x-2">
                     <select
                       value={activeClassId}
                       onChange={(e) => setActiveClassId(e.target.value)}
-                      className="text-base font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+                      className="text-base font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer max-w-xs sm:max-w-md truncate"
                     >
                       {classes.length === 0 ? (
-                        <option value="">(Belum ada kelas)</option>
+                        <option value="">(Belum ada kelas dibuat)</option>
                       ) : (
                         classes.map((cls) => (
                           <option key={cls.id} value={cls.id}>
-                            {cls.name} • {cls.subject} ({cls.semester})
+                            {cls.name} • {cls.subject} ({cls.semester} - Tingkat {cls.grade_level})
                           </option>
                         ))
                       )}
                     </select>
                   </div>
                 </div>
+
+                {/* Quick Edit & Delete for current class */}
+                {activeClass && (
+                  <div className="flex items-center space-x-1 pl-2 border-l border-slate-200">
+                    <button
+                      onClick={() => handleOpenEditClass(activeClass)}
+                      className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                      title="Edit Detail Kelas Ini"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClass(activeClass.id, activeClass.name)}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                      title="Hapus Kelas Ini"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Actions: Add Class */}
-              <button
-                onClick={() => setIsClassModalOpen(true)}
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 transition"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                <span>Tambah Kelas Baru</span>
-              </button>
+              {/* Actions: Class Management Hub & Add Class */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsClassManagementOpen(true)}
+                  className="inline-flex items-center justify-center px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                  title="Buka Pusat Manajemen Seluruh Kelas"
+                >
+                  <Settings2 className="w-4 h-4 mr-1.5 text-slate-500" />
+                  <span>Kelola Kelas</span>
+                  <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-white rounded-md font-bold text-sky-700 shadow-sm">
+                    {classes.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={handleOpenCreateClass}
+                  className="inline-flex items-center justify-center px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  <span>Tambah Kelas</span>
+                </button>
+              </div>
             </div>
 
             {/* Meetings Tab Bar */}
@@ -364,7 +468,7 @@ export default function App() {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setIsStudentModalOpen(true)}
-                    className="inline-flex items-center justify-center px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition"
+                    className="inline-flex items-center justify-center px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition"
                   >
                     <Plus className="w-4 h-4 mr-1.5" />
                     <span>Tambah Siswa</span>
@@ -409,15 +513,26 @@ export default function App() {
               <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-slate-700">Belum Ada Kelas yang Dipilih</h3>
               <p className="text-sm text-slate-500 mt-1 mb-4">
-                Buat kelas pertama Anda untuk mulai mencatat penilaian siswa.
+                Buat rombel pertama Anda atau buka Pusat Manajemen Kelas untuk mulai mencatat penilaian siswa.
               </p>
-              <button
-                onClick={() => setIsClassModalOpen(true)}
-                className="px-5 py-2.5 text-sm font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-md inline-flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                <span>Buat Kelas Sekarang</span>
-              </button>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={handleOpenCreateClass}
+                  className="px-5 py-2.5 text-sm font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-md inline-flex items-center"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  <span>Buat Kelas Baru</span>
+                </button>
+                {classes.length > 0 && (
+                  <button
+                    onClick={() => setIsClassManagementOpen(true)}
+                    className="px-5 py-2.5 text-sm font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 inline-flex items-center"
+                  >
+                    <Settings2 className="w-4 h-4 mr-1.5" />
+                    <span>Buka Daftar Kelas</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </main>
@@ -435,8 +550,29 @@ export default function App() {
       {/* MODALS */}
       <ClassModal
         isOpen={isClassModalOpen}
-        onClose={() => setIsClassModalOpen(false)}
+        onClose={() => {
+          setIsClassModalOpen(false);
+          setEditingClass(null);
+        }}
         onSave={handleSaveClass}
+        editingClass={editingClass}
+      />
+
+      <ClassManagementModal
+        isOpen={isClassManagementOpen}
+        onClose={() => setIsClassManagementOpen(false)}
+        classes={classes}
+        activeClassId={activeClassId}
+        onSelectClass={(id) => setActiveClassId(id)}
+        onOpenCreateModal={() => {
+          setIsClassManagementOpen(false);
+          handleOpenCreateClass();
+        }}
+        onOpenEditModal={(cls) => {
+          setIsClassManagementOpen(false);
+          handleOpenEditClass(cls);
+        }}
+        onDeleteClass={handleDeleteClass}
       />
 
       <StudentModal
@@ -464,4 +600,3 @@ export default function App() {
     </div>
   );
 }
-
